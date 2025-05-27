@@ -57,7 +57,20 @@ func (c *AuthController) Login(ctx *gin.Context) {
 }
 
 func (c *AuthController) Register(ctx *gin.Context) {
-	panic("not implemented")
+	var request request.RegisterRequest
+	if err := ctx.ShouldBind(&request); err != nil {
+		err := apperr.NewValidationError("Invalid request format", utils.FormatValidationError(err))
+		response.JSONError(ctx, c.cfg, c.log, err)
+		return
+	}
+
+	err := c.authUsecase.Register(ctx, request.Username, request.Password, request.Phrase1, request.Phrase2, request.Phrase3, request.Phrase4, request.Phrase5, request.Phrase6, request.Phrase7, request.Phrase8, request.Phrase9, request.Phrase10, request.Phrase11, request.Phrase12)
+	if err != nil {
+		response.JSONError(ctx, c.cfg, c.log, err)
+		return
+	}
+
+	response.JSONSuccess(ctx, "Register successful", nil)
 }
 
 func (c *AuthController) GeneratePhrase(ctx *gin.Context) {

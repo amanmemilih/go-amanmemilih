@@ -3,6 +3,8 @@ package usecases
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/zinct/amanmemilih/internal/domain/entities"
 	"github.com/zinct/amanmemilih/internal/domain/interfaces"
@@ -46,7 +48,53 @@ func (u *AuthUsecase) Login(ctx context.Context, username, password string) (*en
 }
 
 func (u *AuthUsecase) Register(ctx context.Context, username, password, phrase1, phrase2, phrase3, phrase4, phrase5, phrase6, phrase7, phrase8, phrase9, phrase10, phrase11, phrase12 string) error {
-	panic("not implemented")
+	user, err := u.userRepo.FindByUsername(ctx, username)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("KONTOL", user.UsernameVerifiedAt)
+
+	if user.UsernameVerifiedAt != nil {
+		return apperr.NewAPPError(422, "Your account already registered", apperr.AppError, nil)
+	}
+
+	phrase, err := u.userRepo.FindByPhrase(ctx, phrase1, phrase2, phrase3, phrase4, phrase5, phrase6, phrase7, phrase8, phrase9, phrase10, phrase11, phrase12)
+	if err != nil {
+		return err
+	}
+
+	if phrase.Username != username {
+		return apperr.NewAPPError(422, "Phrase is invalid", apperr.AppError, nil)
+	}
+
+	passwordHash, err := utils.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	err = u.userRepo.UpdatePasswordByID(ctx, user.Id, passwordHash)
+	if err != nil {
+		return err
+	}
+
+	err = u.userRepo.UpdateUsernameVerifiedAtByID(ctx, user.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func processWord(word string) string {
+	// Convert to lowercase
+	word = strings.ToLower(word)
+	// Split by space and take first word
+	parts := strings.Fields(word)
+	if len(parts) > 0 {
+		return parts[0]
+	}
+	return word
 }
 
 func (u *AuthUsecase) GeneratePhrase(ctx context.Context, username string) (*entities.Phrase, error) {
@@ -67,18 +115,18 @@ func (u *AuthUsecase) GeneratePhrase(ctx context.Context, username string) (*ent
 	phrase := entities.Phrase{
 		Id:       user.Id,
 		Username: username,
-		Phrase1:  words[0],
-		Phrase2:  words[1],
-		Phrase3:  words[2],
-		Phrase4:  words[3],
-		Phrase5:  words[4],
-		Phrase6:  words[5],
-		Phrase7:  words[6],
-		Phrase8:  words[7],
-		Phrase9:  words[8],
-		Phrase10: words[9],
-		Phrase11: words[10],
-		Phrase12: words[11],
+		Phrase1:  processWord(words[0]),
+		Phrase2:  processWord(words[1]),
+		Phrase3:  processWord(words[2]),
+		Phrase4:  processWord(words[3]),
+		Phrase5:  processWord(words[4]),
+		Phrase6:  processWord(words[5]),
+		Phrase7:  processWord(words[6]),
+		Phrase8:  processWord(words[7]),
+		Phrase9:  processWord(words[8]),
+		Phrase10: processWord(words[9]),
+		Phrase11: processWord(words[10]),
+		Phrase12: processWord(words[11]),
 	}
 
 	err = u.userRepo.CreatePhrase(ctx, user.Username, &phrase)
@@ -152,7 +200,7 @@ func (u *AuthUsecase) ChangePassword(ctx context.Context, password, phrase1, phr
 		return hash.err
 	}
 
-	err := u.userRepo.ChangePassword(ctx, phrase.phrase.Id, hash.hash)
+	err := u.userRepo.UpdatePasswordByID(ctx, phrase.phrase.Id, hash.hash)
 	if err != nil {
 		return err
 	}
