@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"github.com/zinct/amanmemilih/config"
 	"github.com/zinct/amanmemilih/internal/infrastructure/clients/wordie"
+	"github.com/zinct/amanmemilih/internal/infrastructure/repositories/candidat"
 	province2 "github.com/zinct/amanmemilih/internal/infrastructure/repositories/district"
 	"github.com/zinct/amanmemilih/internal/infrastructure/repositories/province"
 	province3 "github.com/zinct/amanmemilih/internal/infrastructure/repositories/subdistrict"
@@ -22,6 +23,13 @@ import (
 )
 
 // Injectors from wire.go:
+
+func InitializePresidentialCandidatController(db *sql.DB, cfg *config.Config, log *logger.Logger) *controllers.PresidentialCandidatController {
+	presidentialCandidatRepository := candidat.NewPresidentialCandidatRepositoryMysql(db)
+	presidentialCandidatUsecase := usecases.NewPresidentialCandidatUsecase(presidentialCandidatRepository)
+	presidentialCandidatController := controllers.NewPresidentialCandidatController(presidentialCandidatUsecase, cfg, log)
+	return presidentialCandidatController
+}
 
 func InitializeAuthController(db *sql.DB, cfg *config.Config, log *logger.Logger, jwtManager *jwt.JWTManager) *controllers.AuthController {
 	userRepository := user.NewUserRepositoryMysql(db)

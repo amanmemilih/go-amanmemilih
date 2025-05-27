@@ -9,6 +9,7 @@ import (
 	"github.com/google/wire"
 	"github.com/zinct/amanmemilih/config"
 	"github.com/zinct/amanmemilih/internal/infrastructure/clients/wordie"
+	candidatRepo "github.com/zinct/amanmemilih/internal/infrastructure/repositories/candidat"
 	districtRepo "github.com/zinct/amanmemilih/internal/infrastructure/repositories/district"
 	provinceRepo "github.com/zinct/amanmemilih/internal/infrastructure/repositories/province"
 	subdistrictRepo "github.com/zinct/amanmemilih/internal/infrastructure/repositories/subdistrict"
@@ -19,6 +20,16 @@ import (
 	"github.com/zinct/amanmemilih/pkg/jwt"
 	"github.com/zinct/amanmemilih/pkg/logger"
 )
+
+func InitializePresidentialCandidatController(db *sql.DB, cfg *config.Config, log *logger.Logger) *controllers.PresidentialCandidatController {
+	wire.Build(
+		candidatRepo.NewPresidentialCandidatRepositoryMysql,
+		usecases.NewPresidentialCandidatUsecase,
+		controllers.NewPresidentialCandidatController,
+	)
+
+	return nil
+}
 
 func InitializeAuthController(db *sql.DB, cfg *config.Config, log *logger.Logger, jwtManager *jwt.JWTManager) *controllers.AuthController {
 	wire.Build(

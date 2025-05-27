@@ -40,6 +40,7 @@ func Run(cfg *config.Config) {
 		DistrictController:    wire.InitializeDistrictController(mysql.DB, cfg, log),
 		SubdistrictController: wire.InitializeSubdistrictController(mysql.DB, cfg, log),
 		VillageController:     wire.InitializeVillageController(mysql.DB, cfg, log),
+		CandidatController:    wire.InitializePresidentialCandidatController(mysql.DB, cfg, log),
 	}, cfg, log, jwtManager)
 
 	httpserver.Start()

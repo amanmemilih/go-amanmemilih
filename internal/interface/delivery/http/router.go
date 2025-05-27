@@ -16,6 +16,7 @@ type RouterOption struct {
 	DistrictController    *controllers.DistrictController
 	SubdistrictController *controllers.SubdistrictController
 	VillageController     *controllers.VillageController
+	CandidatController    *controllers.PresidentialCandidatController
 }
 
 func RegisterMiddleware(router *gin.Engine, cfg *config.Config, log *logger.Logger) {
@@ -39,6 +40,10 @@ func RegisterRoutes(router *gin.Engine, opts RouterOption, cfg *config.Config, l
 		router.POST("/forgot-password", opts.AuthController.ChangePassword)
 		router.GET("/check-credentials", middleware.JWTAuthMiddleware(jm, cfg, log), opts.AuthController.CheckCredential)
 		router.POST("/logout", middleware.JWTAuthMiddleware(jm, cfg, log), opts.AuthController.Logout)
+
+		// Candidat
+		router.GET("/presidential-candidats", middleware.JWTAuthMiddleware(jm, cfg, log), opts.CandidatController.FindAll)
+		router.GET("/presidential-candidat/summary", middleware.JWTAuthMiddleware(jm, cfg, log), opts.CandidatController.Summary)
 	}
 
 	return router

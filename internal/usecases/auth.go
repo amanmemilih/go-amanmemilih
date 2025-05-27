@@ -3,7 +3,6 @@ package usecases
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strings"
 
 	"github.com/zinct/amanmemilih/internal/domain/entities"
@@ -52,8 +51,6 @@ func (u *AuthUsecase) Register(ctx context.Context, username, password, phrase1,
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("KONTOL", user.UsernameVerifiedAt)
 
 	if user.UsernameVerifiedAt != nil {
 		return apperr.NewAPPError(422, "Your account already registered", apperr.AppError, nil)
