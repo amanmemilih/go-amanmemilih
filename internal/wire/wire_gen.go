@@ -9,7 +9,9 @@ package wire
 import (
 	"database/sql"
 	"github.com/zinct/amanmemilih/config"
+	"github.com/zinct/amanmemilih/internal/infrastructure/blockchain/icp"
 	"github.com/zinct/amanmemilih/internal/infrastructure/clients/wordie"
+	"github.com/zinct/amanmemilih/internal/infrastructure/ipfs/pinata"
 	"github.com/zinct/amanmemilih/internal/infrastructure/repositories/candidat"
 	province2 "github.com/zinct/amanmemilih/internal/infrastructure/repositories/district"
 	"github.com/zinct/amanmemilih/internal/infrastructure/repositories/province"
@@ -23,6 +25,17 @@ import (
 )
 
 // Injectors from wire.go:
+
+func InitializeDocumentController(cfg *config.Config, log *logger.Logger) (*controllers.DocumentController, error) {
+	blockchainClient, err := icp.NewClient()
+	if err != nil {
+		return nil, err
+	}
+	ipfs := pinata.NewPinata(cfg, log)
+	documentUsecase := usecases.NewDocumentUsecase(blockchainClient, cfg, log, ipfs)
+	documentController := controllers.NewDocumentController(documentUsecase, cfg, log)
+	return documentController, nil
+}
 
 func InitializePresidentialCandidatController(db *sql.DB, cfg *config.Config, log *logger.Logger) *controllers.PresidentialCandidatController {
 	presidentialCandidatRepository := candidat.NewPresidentialCandidatRepositoryMysql(db)

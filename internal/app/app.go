@@ -34,6 +34,12 @@ func Run(cfg *config.Config) {
 	httpserver := httpserver.New(httpserver.Port(cfg.HTTP.Port), httpserver.WithNewGinEngine())
 
 	http.RegisterMiddleware(httpserver.Router, cfg, log)
+
+	docController, err := wire.InitializeDocumentController(cfg, log)
+	if err != nil {
+		panic(err)
+	}
+
 	http.RegisterRoutes(httpserver.Router, http.RouterOption{
 		AuthController:        wire.InitializeAuthController(mysql.DB, cfg, log, jwtManager),
 		ProvinceController:    wire.InitializeProvinceController(mysql.DB, cfg, log),
@@ -41,6 +47,7 @@ func Run(cfg *config.Config) {
 		SubdistrictController: wire.InitializeSubdistrictController(mysql.DB, cfg, log),
 		VillageController:     wire.InitializeVillageController(mysql.DB, cfg, log),
 		CandidatController:    wire.InitializePresidentialCandidatController(mysql.DB, cfg, log),
+		DocumentController:    docController,
 	}, cfg, log, jwtManager)
 
 	httpserver.Start()

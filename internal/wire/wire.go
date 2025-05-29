@@ -8,7 +8,9 @@ import (
 
 	"github.com/google/wire"
 	"github.com/zinct/amanmemilih/config"
+	"github.com/zinct/amanmemilih/internal/infrastructure/blockchain/icp"
 	"github.com/zinct/amanmemilih/internal/infrastructure/clients/wordie"
+	"github.com/zinct/amanmemilih/internal/infrastructure/ipfs/pinata"
 	candidatRepo "github.com/zinct/amanmemilih/internal/infrastructure/repositories/candidat"
 	districtRepo "github.com/zinct/amanmemilih/internal/infrastructure/repositories/district"
 	provinceRepo "github.com/zinct/amanmemilih/internal/infrastructure/repositories/province"
@@ -20,6 +22,16 @@ import (
 	"github.com/zinct/amanmemilih/pkg/jwt"
 	"github.com/zinct/amanmemilih/pkg/logger"
 )
+
+func InitializeDocumentController(cfg *config.Config, log *logger.Logger) (*controllers.DocumentController, error) {
+	wire.Build(
+		icp.NewClient,
+		pinata.NewPinata,
+		usecases.NewDocumentUsecase,
+		controllers.NewDocumentController,
+	)
+	return nil, nil
+}
 
 func InitializePresidentialCandidatController(db *sql.DB, cfg *config.Config, log *logger.Logger) *controllers.PresidentialCandidatController {
 	wire.Build(

@@ -16,12 +16,14 @@ func JWTAuthMiddleware(jm *jwt.JWTManager, cfg *config.Config, log *logger.Logge
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			response.JSONError(c, cfg, log, apperr.NewUnauthorizedError("Authorization header is missing", nil))
+			c.Abort()
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			response.JSONError(c, cfg, log, apperr.NewUnauthorizedError("Authorization header format must be Bearer {token}", nil))
+			c.Abort()
 			return
 		}
 
@@ -29,6 +31,7 @@ func JWTAuthMiddleware(jm *jwt.JWTManager, cfg *config.Config, log *logger.Logge
 		claims, err := jm.ValidateJWT(tokenStr)
 		if err != nil {
 			response.JSONError(c, cfg, log, apperr.NewUnauthorizedError("Invalid or expired token", nil))
+			c.Abort()
 			return
 		}
 

@@ -10,11 +10,12 @@ import (
 type (
 	// Config -.
 	Config struct {
-		App   App
-		HTTP  HTTP
-		Log   Log
-		MYSQL MYSQL
-		JWT   JWT
+		App    App
+		HTTP   HTTP
+		Log    Log
+		MYSQL  MYSQL
+		JWT    JWT
+		Pinata Pinata
 	}
 
 	// App -.
@@ -22,6 +23,12 @@ type (
 		Name    string `env:"APP_NAME,required"`
 		Env     string `env:"APP_ENV,required"`
 		Version string `env:"APP_VERSION,required"`
+	}
+
+	Pinata struct {
+		APIKey    string `env:"PINATA_API_KEY,required"`
+		APISecret string `env:"PINATA_API_SECRET,required"`
+		APIJWT    string `env:"PINATA_JWT,required"`
 	}
 
 	// HTTP -.

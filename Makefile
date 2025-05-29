@@ -1,5 +1,5 @@
 run:
-	go run cmd/app/main.go
+	fresh
 	
 dev:
 	docker compose up --build
