@@ -35,13 +35,33 @@ func (r *UserRepositoryMysql) UpdateUsernameVerifiedAtByID(ctx context.Context, 
 }
 
 func (r *UserRepositoryMysql) FindByUsername(ctx context.Context, username string) (*entities.User, error) {
-	row := r.db.QueryRowContext(ctx, "SELECT id, username, username_verified_at, password, village_id, address, created_at, updated_at FROM users WHERE username = ?", username)
+	row := r.db.QueryRowContext(ctx, `
+	SELECT 
+		users.id, 
+		username, 
+		username_verified_at, 
+		password, 
+		village_id, 
+		address, 
+		users.created_at, 
+		users.updated_at, 
+		villages.name as village,
+		provinces.name as province, 
+		districts.name as district, 
+		subdistricts.name as subdistrict, 
+		CONCAT(address, ', ', villages.name, ', ', districts.name, ', ', subdistricts.name, ', ', provinces.name) as region 
+	FROM users 
+	JOIN villages ON users.village_id = villages.id 
+	JOIN subdistricts ON villages.subdistrict_id = subdistricts.id 
+	JOIN districts ON subdistricts.district_id = districts.id 
+	JOIN provinces ON districts.province_id = provinces.id 
+	WHERE username = ?`, username)
 	if err := row.Err(); err != nil {
 		return nil, fmt.Errorf("internal/infrastructure/repositories/user/mysql - FindByUsername - QueryRowContext: %w", err)
 	}
 
 	var user entities.User
-	if err := row.Scan(&user.Id, &user.Username, &user.UsernameVerifiedAt, &user.Password, &user.VillageId, &user.Address, &user.CreatedAt, &user.UpdatedAt); err != nil {
+	if err := row.Scan(&user.Id, &user.Username, &user.UsernameVerifiedAt, &user.Password, &user.VillageId, &user.Address, &user.CreatedAt, &user.UpdatedAt, &user.Village, &user.Province, &user.District, &user.Subdistrict, &user.Region); err != nil {
 		return nil, fmt.Errorf("internal/infrastructure/repositories/user/mysql - FindByID - Scan: %w", err)
 	}
 
@@ -49,13 +69,33 @@ func (r *UserRepositoryMysql) FindByUsername(ctx context.Context, username strin
 }
 
 func (r *UserRepositoryMysql) FindByID(ctx context.Context, id int) (*entities.User, error) {
-	row := r.db.QueryRowContext(ctx, "SELECT id, username, password, village_id, address, created_at, updated_at FROM users WHERE id = ?", id)
+	row := r.db.QueryRowContext(ctx, `
+	SELECT 
+		users.id, 
+		username, 
+		username_verified_at, 
+		password, 
+		village_id, 
+		address, 
+		users.created_at, 
+		users.updated_at, 
+		villages.name as village,
+		provinces.name as province, 
+		districts.name as district, 
+		subdistricts.name as subdistrict, 
+		CONCAT(address, ', ', villages.name, ', ', districts.name, ', ', subdistricts.name, ', ', provinces.name) as region 
+	FROM users 
+	JOIN villages ON users.village_id = villages.id 
+	JOIN subdistricts ON villages.subdistrict_id = subdistricts.id 
+	JOIN districts ON subdistricts.district_id = districts.id 
+	JOIN provinces ON districts.province_id = provinces.id 
+	WHERE users.id = ?`, id)
 	if err := row.Err(); err != nil {
 		return nil, fmt.Errorf("internal/infrastructure/repositories/user/mysql - FindByID - QueryRowContext: %w", err)
 	}
 
 	var user entities.User
-	if err := row.Scan(&user.Id, &user.Username, &user.Password, &user.VillageId, &user.Address, &user.CreatedAt, &user.UpdatedAt); err != nil {
+	if err := row.Scan(&user.Id, &user.Username, &user.UsernameVerifiedAt, &user.Password, &user.VillageId, &user.Address, &user.CreatedAt, &user.UpdatedAt, &user.Village, &user.Province, &user.District, &user.Subdistrict, &user.Region); err != nil {
 		return nil, fmt.Errorf("internal/infrastructure/repositories/user/mysql - FindByID - Scan: %w", err)
 	}
 

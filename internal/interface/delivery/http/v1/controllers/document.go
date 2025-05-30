@@ -36,15 +36,84 @@ func NewDocumentController(usecase usecases.DocumentUsecase, config *config.Conf
 }
 
 func (c *DocumentController) FindAll(ctx *gin.Context) {
-	panic("not implemented")
+	userId := ctx.GetInt("user_id")
+	documents, err := c.usecase.FindAll(ctx, userId)
+	if err != nil {
+		response.JSONError(ctx, c.config, c.logger, err)
+		return
+	}
+
+	response.JSONSuccess(ctx, "Documents fetched successfully", documents)
 }
 
 func (c *DocumentController) Find(ctx *gin.Context) {
-	panic("not implemented")
+	id := ctx.Param("id")
+	electionType := ctx.Query("election_type")
+
+	st, err := strconv.Atoi(id)
+	if err != nil {
+		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
+			"id": {"The id field must be a number"},
+		})
+		response.JSONError(ctx, c.config, c.logger, apperr)
+		return
+	}
+
+	if electionType == "" {
+		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
+			"election_type": {"The election type field is required"},
+		})
+		response.JSONError(ctx, c.config, c.logger, apperr)
+		return
+	}
+
+	documents, err := c.usecase.Find(ctx, st, electionType)
+	if err != nil {
+		response.JSONError(ctx, c.config, c.logger, err)
+		return
+	}
+
+	response.JSONSuccess(ctx, "Document fetched successfully", documents)
 }
 
 func (c *DocumentController) Verify(ctx *gin.Context) {
-	panic("not implemented")
+	id := ctx.Param("id")
+
+	electionType := ctx.PostForm("election_type")
+
+	if electionType == "" {
+		var requestBody struct {
+			ElectionType string `json:"election_type"`
+		}
+		if err := ctx.ShouldBindJSON(&requestBody); err == nil {
+			electionType = requestBody.ElectionType
+		}
+	}
+
+	if electionType == "" {
+		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
+			"election_type": {"The election type field is required"},
+		})
+		response.JSONError(ctx, c.config, c.logger, apperr)
+		return
+	}
+
+	st, err := strconv.Atoi(id)
+	if err != nil {
+		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
+			"id": {"The id field must be a number"},
+		})
+		response.JSONError(ctx, c.config, c.logger, apperr)
+		return
+	}
+
+	err = c.usecase.Verify(ctx, st, electionType)
+	if err != nil {
+		response.JSONError(ctx, c.config, c.logger, err)
+		return
+	}
+
+	response.JSONSuccess(ctx, "Document verified successfully", nil)
 }
 
 func (c *DocumentController) Create(ctx *gin.Context) {
@@ -54,8 +123,6 @@ func (c *DocumentController) Create(ctx *gin.Context) {
 		return
 	}
 
-	// Debug: Print all form values
-	fmt.Println("All form values:")
 	for key, values := range ctx.Request.PostForm {
 		fmt.Printf("Key: %s, Values: %v\n", key, values)
 	}
@@ -74,13 +141,15 @@ func (c *DocumentController) Create(ctx *gin.Context) {
 
 	// Validate election type value
 	validElectionTypes := map[string]bool{
-		"presidential": true,
-		"legislative":  true,
-		"regional":     true,
+		"presidential":  true,
+		"dpr":           true,
+		"dpd":           true,
+		"dprd_province": true,
+		"dprd_district": true,
 	}
 	if !validElectionTypes[electionType] {
 		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
-			"election_type": {"The election type must be one of: presidential, legislative, regional"},
+			"election_type": {"The election type must be one of: presidential, dpr, dpd, dprd_province, dprd_district"},
 		})
 		response.JSONError(ctx, c.config, c.logger, apperr)
 		return
@@ -136,102 +205,107 @@ func (c *DocumentController) Create(ctx *gin.Context) {
 		documentNames = append(documentNames, file.Filename)
 	}
 
-	// Create a map to store votes
-	votes := make(map[int]Vote)
-	validationErrors := make(map[string][]string)
+	var documentVotes []entities.DocumentVote
 
-	// Process vote data from PostForm
-	for key, values := range ctx.Request.PostForm {
-		if len(values) == 0 {
-			continue
+	// Only process votes for presidential election type
+	if electionType == "presidential" {
+		// Create a map to store votes
+		votes := make(map[int]Vote)
+		validationErrors := make(map[string][]string)
+
+		// Process vote data from PostForm
+		for key, values := range ctx.Request.PostForm {
+			if len(values) == 0 {
+				continue
+			}
+
+			// Check if the key matches the vote pattern
+			if strings.HasPrefix(key, "vote[") && strings.Contains(key, "][") {
+				// Extract index and field name
+				parts := strings.Split(strings.Trim(key, "vote[]"), "][")
+				if len(parts) != 2 {
+					continue
+				}
+
+				index, err := strconv.Atoi(parts[0])
+				if err != nil {
+					continue
+				}
+
+				field := parts[1]
+				value, err := strconv.Atoi(values[0])
+				if err != nil {
+					validationErrors[fmt.Sprintf("vote[%d][%s]", index, field)] = append(
+						validationErrors[fmt.Sprintf("vote[%d][%s]", index, field)],
+						"must be a number",
+					)
+					continue
+				}
+
+				// Create or update vote entry
+				vote, exists := votes[index]
+				if !exists {
+					vote = Vote{}
+				}
+
+				switch field {
+				case "candidat_id":
+					vote.CandidateID = value
+				case "total_votes":
+					vote.TotalVotes = value
+				}
+
+				votes[index] = vote
+			}
 		}
 
-		// Check if the key matches the vote pattern
-		if strings.HasPrefix(key, "vote[") && strings.Contains(key, "][") {
-			// Extract index and field name
-			parts := strings.Split(strings.Trim(key, "vote[]"), "][")
-			if len(parts) != 2 {
-				continue
-			}
+		// Validate if vote array exists for presidential election
+		if len(votes) == 0 {
+			apperr := apperr.NewValidationError("invalid request format", map[string][]string{
+				"vote": {"The vote field is required for presidential election"},
+			})
+			response.JSONError(ctx, c.config, c.logger, apperr)
+			return
+		}
 
-			index, err := strconv.Atoi(parts[0])
-			if err != nil {
-				continue
-			}
-
-			field := parts[1]
-			value, err := strconv.Atoi(values[0])
-			if err != nil {
-				validationErrors[fmt.Sprintf("vote[%d][%s]", index, field)] = append(
-					validationErrors[fmt.Sprintf("vote[%d][%s]", index, field)],
-					"must be a number",
+		// Validate required fields for each vote
+		for index, vote := range votes {
+			if vote.CandidateID == 0 {
+				validationErrors[fmt.Sprintf("vote[%d][candidat_id]", index)] = append(
+					validationErrors[fmt.Sprintf("vote[%d][candidat_id]", index)],
+					"is required",
 				)
-				continue
 			}
-
-			// Create or update vote entry
-			vote, exists := votes[index]
-			if !exists {
-				vote = Vote{}
+			if vote.TotalVotes == 0 {
+				validationErrors[fmt.Sprintf("vote[%d][total_votes]", index)] = append(
+					validationErrors[fmt.Sprintf("vote[%d][total_votes]", index)],
+					"is required",
+				)
 			}
+		}
 
-			switch field {
-			case "candidat_id":
-				vote.CandidateID = value
-			case "total_votes":
-				vote.TotalVotes = value
+		// If there are validation errors, return them
+		if len(validationErrors) > 0 {
+			apperr := apperr.NewValidationError("invalid request format", validationErrors)
+			response.JSONError(ctx, c.config, c.logger, apperr)
+			return
+		}
+
+		// Convert map to slice
+		var voteSlice []Vote
+		for i := 0; i < len(votes); i++ {
+			if vote, exists := votes[i]; exists {
+				voteSlice = append(voteSlice, vote)
 			}
-
-			votes[index] = vote
 		}
-	}
 
-	// Validate if vote array exists
-	if len(votes) == 0 {
-		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
-			"vote": {"The vote field is required"},
-		})
-		response.JSONError(ctx, c.config, c.logger, apperr)
-		return
-	}
-
-	// Validate required fields for each vote
-	for index, vote := range votes {
-		if vote.CandidateID == 0 {
-			validationErrors[fmt.Sprintf("vote[%d][candidat_id]", index)] = append(
-				validationErrors[fmt.Sprintf("vote[%d][candidat_id]", index)],
-				"is required",
-			)
-		}
-		if vote.TotalVotes == 0 {
-			validationErrors[fmt.Sprintf("vote[%d][total_votes]", index)] = append(
-				validationErrors[fmt.Sprintf("vote[%d][total_votes]", index)],
-				"is required",
-			)
-		}
-	}
-
-	// If there are validation errors, return them
-	if len(validationErrors) > 0 {
-		apperr := apperr.NewValidationError("invalid request format", validationErrors)
-		response.JSONError(ctx, c.config, c.logger, apperr)
-		return
-	}
-
-	// Convert map to slice
-	var voteSlice []Vote
-	for i := 0; i < len(votes); i++ {
-		if vote, exists := votes[i]; exists {
-			voteSlice = append(voteSlice, vote)
-		}
-	}
-
-	// Map Vote slice to DocumentVote slice
-	documentVotes := make([]entities.DocumentVote, len(voteSlice))
-	for i, vote := range voteSlice {
-		documentVotes[i] = entities.DocumentVote{
-			CandidateId: vote.CandidateID,
-			TotalVote:   vote.TotalVotes,
+		// Map Vote slice to DocumentVote slice
+		documentVotes = make([]entities.DocumentVote, len(voteSlice))
+		for i, vote := range voteSlice {
+			documentVotes[i] = entities.DocumentVote{
+				CandidateId: vote.CandidateID,
+				TotalVote:   vote.TotalVotes,
+			}
 		}
 	}
 
@@ -245,4 +319,25 @@ func (c *DocumentController) Create(ctx *gin.Context) {
 	}
 
 	response.JSONSuccess(ctx, "Document created successfully", nil)
+}
+
+func (c *DocumentController) Summary(ctx *gin.Context) {
+	summary, err := c.usecase.Summary(ctx)
+	if err != nil {
+		response.JSONError(ctx, c.config, c.logger, err)
+		return
+	}
+
+	response.JSONSuccess(ctx, "Summary fetched successfully", summary)
+}
+
+func (c *DocumentController) Dashboard(ctx *gin.Context) {
+	userId := ctx.GetInt("user_id")
+	dashboard, err := c.usecase.Dashboard(ctx, userId)
+	if err != nil {
+		response.JSONError(ctx, c.config, c.logger, err)
+		return
+	}
+
+	response.JSONSuccess(ctx, "Dashboard fetched successfully", dashboard)
 }

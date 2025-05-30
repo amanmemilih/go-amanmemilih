@@ -27,7 +27,10 @@ func NewAuthUsecase(userRepo repositories.UserRepository, jwtManager *jwt.JWTMan
 func (u *AuthUsecase) Login(ctx context.Context, username, password string) (*entities.User, string, error) {
 	user, err := u.userRepo.FindByUsername(ctx, username)
 	if err != nil {
-		return nil, "", apperr.NewUnauthorizedError("invalid credential", nil)
+		if err == sql.ErrNoRows {
+			return nil, "", apperr.NewUnauthorizedError("invalid credential", nil)
+		}
+		return nil, "", err
 	}
 
 	if user.UsernameVerifiedAt == nil {
@@ -137,7 +140,11 @@ func (u *AuthUsecase) GeneratePhrase(ctx context.Context, username string) (*ent
 func (u *AuthUsecase) CheckCredential(ctx context.Context, userID int) (*entities.User, error) {
 	user, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return nil, apperr.NewUnauthorizedError("invalid credential", nil)
+		if err == sql.ErrNoRows {
+			return nil, apperr.NewUnauthorizedError("invalid credential", nil)
+		}
+
+		return nil, err
 	}
 
 	return user, nil

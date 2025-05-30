@@ -114,12 +114,13 @@ actor amanmemilih {
       id : Nat32;
       name : Text;
       no : Nat8;
+      image : Text;
   };
 
   let candidates : [(Nat32, PresidentialCandidate)] = [
-      (1, { id = 1; name = "Anies & Cak Imin"; no = 1 }),
-      (2, { id = 2; name = "Prabowo & Gibran"; no = 2 }),
-      (3, { id = 3; name = "Ganjar & Mahfud"; no = 3 })
+      (1, { id = 1; name = "Anies & Cak Imin"; no = 1; image = "https://gateway.pinata.cloud/ipfs/bafkreigau5gbbgugrpotbkqvzhmierfongcxjbkrt6mqeq56cpri7qyc2y" }),
+      (2, { id = 2; name = "Prabowo & Gibran"; no = 2; image = "https://gateway.pinata.cloud/ipfs/bafkreide7djx7wkwfahs4rhqedp3tnecuec4vfmm2r6ze22izblpfc6rbu" }),
+      (3, { id = 3; name = "Ganjar & Mahfud"; no = 3; image = "https://gateway.pinata.cloud/ipfs/bafybeiblgitd5jmlaiby45crol3fozgu5j37vqguci54zxpx3jwvsv7luy" })
   ];
 
   type CreatePresidentialDocumentParams = {
@@ -283,7 +284,7 @@ actor amanmemilih {
       candidateNo : Nat8;
       totalVotes : Nat32;
   };
-  type PresidentialDocumentDetailResponse = {
+  type DocumentDetailResponse = {
       status : Nat8;
       documentC1 : [Text];
       createdAt : Text;
@@ -291,38 +292,103 @@ actor amanmemilih {
       electionDate : Text;
   };
 
-  public func getDetailPresidentialDocument(documentId : Nat32) : async Result<PresidentialDocumentDetailResponse, Text> {
-      switch (presidentialDocumentStore.get(documentId)) {
+  public func getDetailDocument(documentId : Nat32, electionType : Text) : async Result<DocumentDetailResponse, Text> {
+    switch (electionType) {
+      case ("presidential") {
+        switch (presidentialDocumentStore.get(documentId)) {
           case null { return #Err("Document not found") };
           case (?document) {
-              // Ambil semua vote untuk dokumen ini
-              var detailVotes : [PresidentialDocumentDetailVote] = [];
-              for (vote in presidentialVoteStore.vals()) {
-                  if (vote.presidentialDocumentId == documentId) {
-                      // Ambil kandidat dari array hardcode
-                      let candidateOpt = Array.find<(Nat32, PresidentialCandidate)>(candidates, func((id, _)) { id == vote.presidentialCandidateId });
-                      switch (candidateOpt) {
-                          case null { /* skip jika kandidat tidak ditemukan */ };
-                          case (?(_, c)) {
-                              detailVotes := Array.append(detailVotes, [{
-                                  candidateName = c.name;
-                                  candidateNo = c.no;
-                                  totalVotes = vote.totalVotes;
-                              }]);
-                          };
-                      };
+            // Ambil semua vote untuk dokumen ini
+            var detailVotes : [PresidentialDocumentDetailVote] = [];
+            for (vote in presidentialVoteStore.vals()) {
+              if (vote.presidentialDocumentId == documentId) {
+                // Ambil kandidat dari array hardcode
+                let candidateOpt = Array.find<(Nat32, PresidentialCandidate)>(candidates, func((id, _)) { id == vote.presidentialCandidateId });
+                switch (candidateOpt) {
+                  case null { /* skip jika kandidat tidak ditemukan */ };
+                  case (?(_, c)) {
+                    detailVotes := Array.append(detailVotes, [{
+                      candidateName = c.name;
+                      candidateNo = c.no;
+                      totalVotes = vote.totalVotes;
+                    }]);
                   };
+                };
               };
-              let response : PresidentialDocumentDetailResponse = {
-                  status = document.status;
-                  documentC1 = document.documentC1;
-                  createdAt = document.createdAt;
-                  votes = detailVotes;
-                  electionDate = document.createdAt;
-              };
-              return #Ok(response);
+            };
+            let response : DocumentDetailResponse = {
+              status = document.status;
+              documentC1 = document.documentC1;
+              createdAt = document.createdAt;
+              votes = detailVotes;
+              electionDate = document.createdAt;
+            };
+            return #Ok(response);
           };
+        };
       };
+      case ("dpr") {
+        switch (dprDocumentStore.get(documentId)) {
+          case null { return #Err("Document not found") };
+          case (?document) {
+            let response : DocumentDetailResponse = {
+              status = document.status;
+              documentC1 = document.documentC1;
+              createdAt = document.createdAt;
+              votes = [];
+              electionDate = document.createdAt;
+            };
+            return #Ok(response);
+          };
+        };
+      };
+      case ("dpd") {
+        switch (dpdDocumentStore.get(documentId)) {
+          case null { return #Err("Document not found") };
+          case (?document) {
+            let response : DocumentDetailResponse = {
+              status = document.status;
+              documentC1 = document.documentC1;
+              createdAt = document.createdAt;
+              votes = [];
+              electionDate = document.createdAt;
+            };
+            return #Ok(response);
+          };
+        };
+      };
+      case ("dprd_province") {
+        switch (dprdProvinceDocumentStore.get(documentId)) {
+          case null { return #Err("Document not found") };
+          case (?document) {
+            let response : DocumentDetailResponse = {
+              status = document.status;
+              documentC1 = document.documentC1;
+              createdAt = document.createdAt;
+              votes = [];
+              electionDate = document.createdAt;
+            };
+            return #Ok(response);
+          };
+        };
+      };
+      case ("dprd_district") {
+        switch (dprdDistrictDocumentStore.get(documentId)) {
+          case null { return #Err("Document not found") };
+          case (?document) {
+            let response : DocumentDetailResponse = {
+              status = document.status;
+              documentC1 = document.documentC1;
+              createdAt = document.createdAt;
+              votes = [];
+              electionDate = document.createdAt;
+            };
+            return #Ok(response);
+          };
+        };
+      };
+      case (_) { return #Err("Invalid election type") };
+    };
   };
 
   type checkDocumentResponse = {
@@ -331,11 +397,11 @@ actor amanmemilih {
     status : Nat8; // 0: not created, 1: created
     electionType : Text; // presidential, dpr, dpd, dprd_province, dprd_district
   };
-  public func checkDocument() : async [checkDocumentResponse] {
+  public func checkDocument(userId : Nat32) : async [checkDocumentResponse] {
     var response : [checkDocumentResponse] = [];
     
     // Presidential Document
-    let presidentialDoc = Array.find<PresidentialDocument>(Iter.toArray(presidentialDocumentStore.vals()), func(doc) { true });
+    let presidentialDoc = Array.find<PresidentialDocument>(Iter.toArray(presidentialDocumentStore.vals()), func(doc) { doc.userId == userId });
     let presidentialResponse : checkDocumentResponse = {
       id = switch (presidentialDoc) { case null { 0 }; case (?doc) { doc.id } };
       name = "PILPRES";
@@ -350,7 +416,7 @@ actor amanmemilih {
     response := Array.append(response, [presidentialResponse]);
 
     // DPR Document
-    let dprDoc = Array.find<DPRDocument>(Iter.toArray(dprDocumentStore.vals()), func(doc) { true });
+    let dprDoc = Array.find<DPRDocument>(Iter.toArray(dprDocumentStore.vals()), func(doc) { doc.userId == userId });
     let dprResponse : checkDocumentResponse = {
       id = switch (dprDoc) { case null { 0 }; case (?doc) { doc.id } };
       name = "PILEG DPR";
@@ -365,7 +431,7 @@ actor amanmemilih {
     response := Array.append(response, [dprResponse]);
 
     // DPD Document
-    let dpdDoc = Array.find<DPDDocument>(Iter.toArray(dpdDocumentStore.vals()), func(doc) { true });
+    let dpdDoc = Array.find<DPDDocument>(Iter.toArray(dpdDocumentStore.vals()), func(doc) { doc.userId == userId });
     let dpdResponse : checkDocumentResponse = {
       id = switch (dpdDoc) { case null { 0 }; case (?doc) { doc.id } };
       name = "PEMILU DPD";
@@ -380,7 +446,7 @@ actor amanmemilih {
     response := Array.append(response, [dpdResponse]);
 
     // DPRD Province Document
-    let dprdProvinceDoc = Array.find<DPRDProvinceDocument>(Iter.toArray(dprdProvinceDocumentStore.vals()), func(doc) { true });
+    let dprdProvinceDoc = Array.find<DPRDProvinceDocument>(Iter.toArray(dprdProvinceDocumentStore.vals()), func(doc) { doc.userId == userId });
     let dprdProvinceResponse : checkDocumentResponse = {
       id = switch (dprdProvinceDoc) { case null { 0 }; case (?doc) { doc.id } };
       name = "PILEG DPRD PROVINSI";
@@ -395,7 +461,7 @@ actor amanmemilih {
     response := Array.append(response, [dprdProvinceResponse]);
 
     // DPRD District Document
-    let dprdDistrictDoc = Array.find<DPRDDistrictDocument>(Iter.toArray(dprdDistrictDocumentStore.vals()), func(doc) { true });
+    let dprdDistrictDoc = Array.find<DPRDDistrictDocument>(Iter.toArray(dprdDistrictDocumentStore.vals()), func(doc) { doc.userId == userId });
     let dprdDistrictResponse : checkDocumentResponse = {
       id = switch (dprdDistrictDoc) { case null { 0 }; case (?doc) { doc.id } };
       name = "PILEG DPRD KAB/KOTA";
@@ -423,10 +489,11 @@ actor amanmemilih {
   };
 
   public type VotePercentage = {
-      presidentialCandidateId : Nat32;
       vote_percentage : Text;
       name : Text;
       no : Nat8;
+      image : Text;
+      id : Nat32;
   };
 
   public func getTotalVotes() : async [VotePercentage] {
@@ -458,10 +525,11 @@ actor amanmemilih {
               case null { };
               case (?(_, candidate)) {
                   result := Array.append(result, [{
-                      presidentialCandidateId = candidateId;
                       vote_percentage = percentage;
                       name = candidate.name;
                       no = candidate.no;
+                      image = candidate.image;
+                      id = candidateId;
                   }]);
               };
           };
@@ -553,6 +621,80 @@ actor amanmemilih {
         };
       };
       case (_) { return false };
+    };
+  };
+
+  type DashboardResponse = {
+    notUploaded : Nat8;
+    uploaded : Nat8;
+    verified : Nat8;
+  };
+
+  public func getDashboard(userId : Nat32) : async DashboardResponse {
+    var uploaded : Nat8 = 0;
+    var verified : Nat8 = 0;
+
+    // Check presidential document
+    for (doc in presidentialDocumentStore.vals()) {
+      if (doc.userId == userId) {
+        if (doc.status == 1) {
+          verified += 1;
+        } else {
+          uploaded += 1;
+        };
+      };
+    };
+
+    // Check DPR document
+    for (doc in dprDocumentStore.vals()) {
+      if (doc.userId == userId) {
+        if (doc.status == 1) {
+          verified += 1;
+        } else {
+          uploaded += 1;
+        };
+      };
+    };
+
+    // Check DPD document
+    for (doc in dpdDocumentStore.vals()) {
+      if (doc.userId == userId) {
+        if (doc.status == 1) {
+          verified += 1;
+        } else {
+          uploaded += 1;
+        };
+      };
+    };
+
+    // Check DPRD Province document
+    for (doc in dprdProvinceDocumentStore.vals()) {
+      if (doc.userId == userId) {
+        if (doc.status == 1) {
+          verified += 1;
+        } else {
+          uploaded += 1;
+        };
+      };
+    };
+
+    // Check DPRD District document
+    for (doc in dprdDistrictDocumentStore.vals()) {
+      if (doc.userId == userId) {
+        if (doc.status == 1) {
+          verified += 1;
+        } else {
+          uploaded += 1;
+        };
+      };
+    };
+
+    let notUploaded : Nat8 = 5 - (uploaded + verified);
+    
+    return {
+      notUploaded = notUploaded;
+      uploaded = uploaded;
+      verified = verified;
     };
   };
 

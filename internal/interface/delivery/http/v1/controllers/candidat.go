@@ -31,7 +31,3 @@ func (c *PresidentialCandidatController) FindAll(ctx *gin.Context) {
 
 	response.JSONSuccess(ctx, "Data successfully retrieved", candidates)
 }
-
-func (c *PresidentialCandidatController) Summary(ctx *gin.Context) {
-	panic("not implemented")
-}

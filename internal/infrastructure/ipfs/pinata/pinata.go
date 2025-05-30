@@ -179,7 +179,7 @@ func (p *Pinata) UploadMultiple(ctx context.Context, contents []string, group st
 				errChan <- fmt.Errorf("failed to upload document %d: %w", index, err)
 				return
 			}
-			hashes[index] = hash
+			hashes[index] = "https://gateway.pinata.cloud/ipfs/" + hash
 		}(i, content)
 	}
 
