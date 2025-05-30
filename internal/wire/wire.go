@@ -23,10 +23,11 @@ import (
 	"github.com/zinct/amanmemilih/pkg/logger"
 )
 
-func InitializeDocumentController(cfg *config.Config, log *logger.Logger) (*controllers.DocumentController, error) {
+func InitializeDocumentController(db *sql.DB, cfg *config.Config, log *logger.Logger) (*controllers.DocumentController, error) {
 	wire.Build(
 		icp.NewClient,
 		pinata.NewPinata,
+		userRepo.NewUserRepositoryMysql,
 		usecases.NewDocumentUsecase,
 		controllers.NewDocumentController,
 	)

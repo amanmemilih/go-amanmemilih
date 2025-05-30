@@ -33,6 +33,7 @@ func RegisterRoutes(router *gin.Engine, opts RouterOption, cfg *config.Config, l
 		bps.GET("/district/:provinceId", opts.DistrictController.FindAll)
 		bps.GET("/subdistrict/:districtId", opts.SubdistrictController.FindAll)
 		bps.GET("/village/:subdistrictId", opts.VillageController.FindAll)
+		bps.GET("/tps/:villageId", opts.DocumentController.GetDocumentUser)
 
 		// Auth
 		router.POST("/login", opts.AuthController.Login)

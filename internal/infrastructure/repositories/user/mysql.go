@@ -157,3 +157,42 @@ func (r *UserRepositoryMysql) FindByPhrase(ctx context.Context, phrase1, phrase2
 
 	return &phrase, nil
 }
+
+func (r *UserRepositoryMysql) FindByVillageID(ctx context.Context, villageID int) ([]entities.User, error) {
+	rows, err := r.db.QueryContext(ctx, `
+	SELECT 
+		users.id, 
+		username, 
+		username_verified_at, 
+		password, 
+		village_id, 
+		address, 
+		users.created_at, 
+		users.updated_at, 
+		villages.name as village,
+		provinces.name as province, 
+		districts.name as district, 
+		subdistricts.name as subdistrict, 
+		CONCAT(address, ', ', villages.name, ', ', districts.name, ', ', subdistricts.name, ', ', provinces.name) as region 
+	FROM users 
+	JOIN villages ON users.village_id = villages.id 
+	JOIN subdistricts ON villages.subdistrict_id = subdistricts.id 
+	JOIN districts ON subdistricts.district_id = districts.id 
+	JOIN provinces ON districts.province_id = provinces.id 
+	WHERE users.village_id = ?`, villageID)
+	if err != nil {
+		return nil, fmt.Errorf("internal/infrastructure/repositories/user/mysql - FindByVillageID - QueryContext: %w", err)
+	}
+
+	var users []entities.User
+	for rows.Next() {
+		var user entities.User
+		err := rows.Scan(&user.Id, &user.Username, &user.UsernameVerifiedAt, &user.Password, &user.VillageId, &user.Address, &user.CreatedAt, &user.UpdatedAt, &user.Village, &user.Province, &user.District, &user.Subdistrict, &user.Region)
+		if err != nil {
+			return nil, fmt.Errorf("internal/infrastructure/repositories/user/mysql - FindByVillageID - Scan: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}

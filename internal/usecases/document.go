@@ -9,20 +9,28 @@ import (
 	"github.com/zinct/amanmemilih/config"
 	"github.com/zinct/amanmemilih/internal/domain/entities"
 	"github.com/zinct/amanmemilih/internal/domain/interfaces"
+	"github.com/zinct/amanmemilih/internal/domain/repositories"
 	"github.com/zinct/amanmemilih/internal/domain/usecases"
 	"github.com/zinct/amanmemilih/internal/infrastructure/ipfs"
 	"github.com/zinct/amanmemilih/pkg/logger"
 )
 
 type DocumentUsecase struct {
-	client interfaces.BlockchainClient
-	cfg    *config.Config
-	log    *logger.Logger
-	ipfs   ipfs.IPFS
+	userRepo repositories.UserRepository
+	client   interfaces.BlockchainClient
+	cfg      *config.Config
+	log      *logger.Logger
+	ipfs     ipfs.IPFS
 }
 
-func NewDocumentUsecase(client interfaces.BlockchainClient, cfg *config.Config, log *logger.Logger, ipfs ipfs.IPFS) usecases.DocumentUsecase {
-	return &DocumentUsecase{client: client, cfg: cfg, log: log, ipfs: ipfs}
+func NewDocumentUsecase(client interfaces.BlockchainClient, cfg *config.Config, log *logger.Logger, ipfs ipfs.IPFS, userRepo repositories.UserRepository) usecases.DocumentUsecase {
+	return &DocumentUsecase{
+		client:   client,
+		cfg:      cfg,
+		log:      log,
+		ipfs:     ipfs,
+		userRepo: userRepo,
+	}
 }
 
 func (u *DocumentUsecase) FindAll(ctx context.Context, userId int) ([]interfaces.CheckDocumentResponse, error) {
@@ -57,15 +65,12 @@ func (u *DocumentUsecase) Verify(ctx context.Context, id int, electionType strin
 }
 
 func (u *DocumentUsecase) Create(ctx context.Context, userId int, electionType string, votes []entities.DocumentVote, documents []string, documentNames []string) error {
-	// Upload documents to IPFS with election type as group
 	ipfsHashes, err := u.ipfs.UploadMultiple(ctx, documents, "document-c1")
 	if err != nil {
 		return err
 	}
 
-	// Send data to ICP blockchain
 	if electionType == "presidential" {
-		// Convert votes to PresidentialVoteParams
 		presidentialVotes := make([]interfaces.PresidentialVoteParams, len(votes))
 		for i, vote := range votes {
 			presidentialVotes[i] = interfaces.PresidentialVoteParams{
@@ -136,4 +141,22 @@ func (u *DocumentUsecase) Dashboard(ctx context.Context, userId int) (*interface
 	}
 
 	return dashboard, nil
+}
+
+func (u *DocumentUsecase) GetDocumentUser(ctx context.Context, electionType string) ([]interfaces.GetUserResponse, error) {
+	documents, err := u.client.GetDocumentUser(ctx, electionType)
+	if err != nil {
+		return nil, err
+	}
+
+	return documents, nil
+}
+
+func (u *DocumentUsecase) GetUser(ctx context.Context, villageId int) ([]entities.User, error) {
+	users, err := u.userRepo.FindByVillageID(ctx, villageId)
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

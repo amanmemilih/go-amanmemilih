@@ -65,6 +65,11 @@ type CreateDocumentParams struct {
 	UserID        uint32   `json:"user_id"`
 }
 
+type GetUserResponse struct {
+	ID     uint32 `json:"id"`
+	UserID uint32 `json:"user_id"`
+}
+
 type BlockchainClient interface {
 	CheckDocument(ctx context.Context, userId uint32) ([]CheckDocumentResponse, error)
 	CheckIfUserHasVoted(ctx context.Context, userId uint32) (bool, error)
@@ -76,4 +81,5 @@ type BlockchainClient interface {
 	GetTotalVotes(ctx context.Context) ([]VotePercentage, error)
 	VerifyDocument(ctx context.Context, documentId uint32, electionType string) (bool, error)
 	GetDashboard(ctx context.Context, userId uint32) (*DashboardResponse, error)
+	GetDocumentUser(ctx context.Context, electionType string) ([]GetUserResponse, error)
 }

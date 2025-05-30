@@ -13,4 +13,5 @@ type UserRepository interface {
 	FindByID(ctx context.Context, id int) (*entities.User, error)
 	CreatePhrase(ctx context.Context, username string, phrase *entities.Phrase) error
 	FindByPhrase(ctx context.Context, phrase1, phrase2, phrase3, phrase4, phrase5, phrase6, phrase7, phrase8, phrase9, phrase10, phrase11, phrase12 string) (*entities.Phrase, error)
+	FindByVillageID(ctx context.Context, villageID int) ([]entities.User, error)
 }

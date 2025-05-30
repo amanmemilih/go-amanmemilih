@@ -35,7 +35,7 @@ func Run(cfg *config.Config) {
 
 	http.RegisterMiddleware(httpserver.Router, cfg, log)
 
-	docController, err := wire.InitializeDocumentController(cfg, log)
+	docController, err := wire.InitializeDocumentController(mysql.DB, cfg, log)
 	if err != nil {
 		panic(err)
 	}

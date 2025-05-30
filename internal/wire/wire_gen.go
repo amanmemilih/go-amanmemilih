@@ -26,13 +26,14 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeDocumentController(cfg *config.Config, log *logger.Logger) (*controllers.DocumentController, error) {
+func InitializeDocumentController(db *sql.DB, cfg *config.Config, log *logger.Logger) (*controllers.DocumentController, error) {
 	blockchainClient, err := icp.NewClient()
 	if err != nil {
 		return nil, err
 	}
 	ipfs := pinata.NewPinata(cfg, log)
-	documentUsecase := usecases.NewDocumentUsecase(blockchainClient, cfg, log, ipfs)
+	userRepository := user.NewUserRepositoryMysql(db)
+	documentUsecase := usecases.NewDocumentUsecase(blockchainClient, cfg, log, ipfs, userRepository)
 	documentController := controllers.NewDocumentController(documentUsecase, cfg, log)
 	return documentController, nil
 }

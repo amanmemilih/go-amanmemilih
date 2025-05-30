@@ -624,6 +624,61 @@ actor amanmemilih {
     };
   };
 
+  type GetUserResponse = {
+    id : Nat32; // Document ID
+    userId : Nat32; // User ID
+  };
+
+  public func getDocumentUser(electionType : Text) : async [GetUserResponse] {
+    var response : [GetUserResponse] = [];
+
+    switch (electionType) {
+      case ("presidential") {
+        for (doc in presidentialDocumentStore.vals()) {
+          response := Array.append(response, [{
+            id = doc.id;
+            userId = doc.userId;
+          }]);
+        };
+      };
+      case ("dpr") {
+        for (doc in dprDocumentStore.vals()) {
+          response := Array.append(response, [{
+            id = doc.id;
+            userId = doc.userId;
+          }]);
+        };
+      };
+      case ("dpd") {
+        for (doc in dpdDocumentStore.vals()) {
+          response := Array.append(response, [{
+            id = doc.id;
+            userId = doc.userId;
+          }]);
+        };
+      };
+      case ("dprd_province") {
+        for (doc in dprdProvinceDocumentStore.vals()) {
+          response := Array.append(response, [{
+            id = doc.id;
+            userId = doc.userId;
+          }]);
+        };
+      };
+      case ("dprd_district") {
+        for (doc in dprdDistrictDocumentStore.vals()) {
+          response := Array.append(response, [{
+            id = doc.id;
+            userId = doc.userId;
+          }]);
+        };
+      };
+      case (_) { return [] };
+    };
+
+    return response;
+  };
+
   type DashboardResponse = {
     notUploaded : Nat8;
     uploaded : Nat8;

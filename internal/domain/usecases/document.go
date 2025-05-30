@@ -14,4 +14,6 @@ type DocumentUsecase interface {
 	Create(ctx context.Context, userId int, electionType string, votes []entities.DocumentVote, documents []string, documentNames []string) error
 	Summary(ctx context.Context) ([]interfaces.VotePercentage, error)
 	Dashboard(ctx context.Context, userId int) (*interfaces.DashboardResponse, error)
+	GetDocumentUser(ctx context.Context, electionType string) ([]interfaces.GetUserResponse, error)
+	GetUser(ctx context.Context, villageId int) ([]entities.User, error)
 }

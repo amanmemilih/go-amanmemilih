@@ -12,6 +12,7 @@ import (
 	"github.com/zinct/amanmemilih/internal/domain/entities"
 	"github.com/zinct/amanmemilih/internal/domain/usecases"
 	apperr "github.com/zinct/amanmemilih/internal/errors"
+	"github.com/zinct/amanmemilih/internal/interface/delivery/http/v1/presenter"
 	"github.com/zinct/amanmemilih/internal/interface/delivery/http/v1/response"
 	"github.com/zinct/amanmemilih/pkg/logger"
 )
@@ -340,4 +341,70 @@ func (c *DocumentController) Dashboard(ctx *gin.Context) {
 	}
 
 	response.JSONSuccess(ctx, "Dashboard fetched successfully", dashboard)
+}
+
+func (c *DocumentController) GetDocumentUser(ctx *gin.Context) {
+	villageId := ctx.Param("villageId")
+	electionType := ctx.Query("election_type")
+
+	st, err := strconv.Atoi(villageId)
+	if err != nil {
+		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
+			"village_id": {"The village id field must be a number"},
+		})
+		response.JSONError(ctx, c.config, c.logger, apperr)
+		return
+	}
+
+	if electionType == "" {
+		apperr := apperr.NewValidationError("invalid request format", map[string][]string{
+			"election_type": {"The election type field is required"},
+		})
+		response.JSONError(ctx, c.config, c.logger, apperr)
+		return
+	}
+
+	users, err := c.usecase.GetUser(ctx, st)
+	if err != nil {
+		response.JSONError(ctx, c.config, c.logger, err)
+		return
+	}
+
+	documents, err := c.usecase.GetDocumentUser(ctx, electionType)
+	if err != nil {
+		response.JSONError(ctx, c.config, c.logger, err)
+		return
+	}
+
+	// Create a map of user IDs to user details for quick lookup
+	userMap := make(map[uint32]struct {
+		Name      string
+		Address   string
+		VillageId int
+	})
+	for _, user := range users {
+		userMap[uint32(user.Id)] = struct {
+			Name      string
+			Address   string
+			VillageId int
+		}{
+			Name:      user.Username,
+			Address:   user.Address,
+			VillageId: user.VillageId,
+		}
+	}
+
+	var filteredDocuments []presenter.DocumentUserResponse
+	for _, doc := range documents {
+		if user, exists := userMap[doc.UserID]; exists {
+			filteredDocuments = append(filteredDocuments, presenter.DocumentUserResponse{
+				ID:        int(doc.ID),
+				Name:      user.Name,
+				Address:   user.Address,
+				VillageId: user.VillageId,
+			})
+		}
+	}
+
+	response.JSONSuccess(ctx, "Documents fetched successfully", filteredDocuments)
 }

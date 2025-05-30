@@ -82,6 +82,11 @@ type CreateDocumentParams struct {
 	UserID        uint32   `ic:"userId"`
 }
 
+type GetUserResponse struct {
+	ID     uint32 `ic:"id"`
+	UserID uint32 `ic:"userId"`
+}
+
 type Client struct {
 	agent      *agent.Agent
 	canisterId principal.Principal
@@ -293,6 +298,26 @@ func (c *Client) GetDashboard(ctx context.Context, userId uint32) (*interfaces.D
 		Uploaded:    output.Uploaded,
 		Verified:    output.Verified,
 	}, nil
+}
+
+func (c *Client) GetDocumentUser(ctx context.Context, electionType string) ([]interfaces.GetUserResponse, error) {
+	var output []GetUserResponse
+	if err := c.agent.Call(
+		c.canisterId, "getDocumentUser",
+		[]any{electionType},
+		[]any{&output},
+	); err != nil {
+		return nil, errors.Wrap(err, "Client.GetDocumentUser")
+	}
+
+	result := make([]interfaces.GetUserResponse, len(output))
+	for i, doc := range output {
+		result[i] = interfaces.GetUserResponse{
+			ID:     doc.ID,
+			UserID: doc.UserID,
+		}
+	}
+	return result, nil
 }
 
 func (c *Client) VerifyDocument(ctx context.Context, documentId uint32, electionType string) (bool, error) {
