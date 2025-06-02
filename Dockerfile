@@ -1,19 +1,26 @@
-FROM golang:1.24
-
-# Install golang-migrate
-RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz && \
-    mv migrate /usr/local/bin/ && \
-    chmod +x /usr/local/bin/migrate
+FROM golang:1.24.3-alpine AS builder
 
 WORKDIR /app
 
-# Copy only go.mod and go.sum first to use Docker cache effectively
-COPY go.mod go.sum ./
+RUN apk add --no-cache git ca-certificates
 
-# Download dependencies (will be cached if go.mod/go.sum not changed)
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Now copy the rest of the code
 COPY . .
 
-CMD ["make", "run"]
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+
+RUN go build -ldflags="-s -w" -o main ./cmd/app
+
+# ✅ Ganti dari `scratch` ke `alpine` dan bawa certs
+FROM alpine:3.21.3
+
+WORKDIR /app
+COPY --from=builder /app/main .
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Opsional: minimal tambahan CA tools
+RUN apk add --no-cache ca-certificates
+
+CMD ["./main"]
