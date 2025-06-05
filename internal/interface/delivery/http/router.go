@@ -1,6 +1,8 @@
 package http
 
 import (
+	"net/http"
+
 	"github.com/zinct/amanmemilih/config"
 	"github.com/zinct/amanmemilih/internal/interface/delivery/http/v1/controllers"
 	"github.com/zinct/amanmemilih/internal/interface/delivery/http/v1/middleware"
@@ -27,6 +29,9 @@ func RegisterMiddleware(router *gin.Engine, cfg *config.Config, log *logger.Logg
 
 func RegisterRoutes(router *gin.Engine, opts RouterOption, cfg *config.Config, log *logger.Logger, jm *jwt.JWTManager) *gin.Engine {
 	{
+		router.POST("/woi", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "Hello World"})
+		})
 		// BPS
 		bps := router.Group("/bps")
 		bps.GET("/province", opts.ProvinceController.FindAll)
