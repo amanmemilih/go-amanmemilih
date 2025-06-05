@@ -1,8 +1,6 @@
 package http
 
 import (
-	"net/http"
-
 	"github.com/zinct/amanmemilih/config"
 	"github.com/zinct/amanmemilih/internal/interface/delivery/http/v1/controllers"
 	"github.com/zinct/amanmemilih/internal/interface/delivery/http/v1/middleware"
@@ -29,9 +27,6 @@ func RegisterMiddleware(router *gin.Engine, cfg *config.Config, log *logger.Logg
 
 func RegisterRoutes(router *gin.Engine, opts RouterOption, cfg *config.Config, log *logger.Logger, jm *jwt.JWTManager) *gin.Engine {
 	{
-		router.POST("/woi", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "Hello World"})
-		})
 		// BPS
 		bps := router.Group("/bps")
 		bps.GET("/province", opts.ProvinceController.FindAll)
@@ -49,8 +44,8 @@ func RegisterRoutes(router *gin.Engine, opts RouterOption, cfg *config.Config, l
 		router.POST("/logout", middleware.JWTAuthMiddleware(jm, cfg, log), opts.AuthController.Logout)
 
 		// Candidat
-		router.GET("/presidential-candidats", middleware.JWTAuthMiddleware(jm, cfg, log), opts.CandidatController.FindAll)
-		router.GET("/presidential-candidats/summary", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.Summary)
+		router.GET("/presidential-candidats", opts.CandidatController.FindAll)
+		router.GET("/presidential-candidats/summary", opts.DocumentController.Summary)
 
 		router.GET("/documents", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.FindAll)
 		router.POST("/documents", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.Create)
