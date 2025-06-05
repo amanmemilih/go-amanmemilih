@@ -49,7 +49,7 @@ func RegisterRoutes(router *gin.Engine, opts RouterOption, cfg *config.Config, l
 
 		router.GET("/documents", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.FindAll)
 		router.POST("/documents", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.Create)
-		router.GET("/documents/:id", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.Find)
+		router.GET("/documents/:id", opts.DocumentController.Find)
 		router.POST("/documents/:id/verified", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.Verify)
 
 		router.GET("/dashboard", middleware.JWTAuthMiddleware(jm, cfg, log), opts.DocumentController.Dashboard)
