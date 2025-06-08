@@ -34,7 +34,7 @@ jobs:
       - name: Update image with latest tags
         uses: clowdhaus/argo-cd-action/@main
         with:
-          command: app set ${{ env.ARGOCD_APP_NAME }} --project amanmemilih-project -p deployment.containers.image.tag=${{ github.ref_name }}
+          command: app set ${{ env.ARGOCD_APP_NAME }} --project amanmemilih-project --helm-set image.tag=${{ github.ref_name }}
           options: --auth-token=${{ secrets.ARGOCD_TOKEN_AWS }} --server=${{ env.ARGOCD_SERVER }}
       - name: Argo CD Action Sync
         uses: clowdhaus/argo-cd-action/@main
